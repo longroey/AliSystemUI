@@ -53,6 +53,9 @@ public class SimLockScreenWarnings implements SimLockScreen.Warnings {
 
     public static final int ICC_PUK_RETRY_COUNT_ZERO = 100;
     public static final int ICC_PIN_RETRY_COUNT_ZERO = 101;
+    public static final int ICC_IDENTIFY = 102;
+    public static final int ICC_EXPIRED = 103;
+    public static final int ICC_ILLEGAL = 104;
     /// {@See IccCardConstants#State}
     /**
      * SIM card state: Unknown. Signifies that the SIM is in transition
@@ -85,7 +88,6 @@ public class SimLockScreenWarnings implements SimLockScreen.Warnings {
         mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         mWifiManager = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
         mConnectivityManager = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        mReceiver.init();
     }
 
     @Override
@@ -98,6 +100,7 @@ public class SimLockScreenWarnings implements SimLockScreen.Warnings {
                 mSimLockDialog.dismiss();
                 mSimLockDialog = null;
                 resumeFeature();
+                mReceiver.unInit();
             }
         } else {
             if (mSimLockDialog == null) {
@@ -106,6 +109,7 @@ public class SimLockScreenWarnings implements SimLockScreen.Warnings {
                 mSimLockDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SIMLOCK);
                 mSimLockDialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
                 pauseFeature();
+                mReceiver.init();
             }
             mSimLockDialog.update(simState);
             if (!isShowing()) {
@@ -216,6 +220,10 @@ public class SimLockScreenWarnings implements SimLockScreen.Warnings {
             mContext.registerReceiver(this, filter, null, mHandler);
         }
 
+        public void unInit() {
+            mContext.unregisterReceiver(this);
+        }
+
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -226,8 +234,11 @@ public class SimLockScreenWarnings implements SimLockScreen.Warnings {
                     if (DEBUG) Log.d(TAG, "receive shutdown broadcast, should resume feature.");
                     mSimLockDialog.dismiss();
                     mSimLockDialog = null;
-                    resumeFeature();
                 }
+                if (isHotspotSupported()) {
+                    setHotspotEnabled(mHotspotState);
+                }
+                Settings.Global.putInt(mContext.getContentResolver(), "fm_enable", mFMState);
             }
         }
     };
@@ -263,10 +274,25 @@ public class SimLockScreenWarnings implements SimLockScreen.Warnings {
                 case ICC_NETWORK_LOCKED:
                 case ICC_PUK_RETRY_COUNT_ZERO:
                 case ICC_PIN_RETRY_COUNT_ZERO:
+                case ICC_ILLEGAL:
                     synchronized (this) {
                         if (DEBUG) Log.d(TAG, "update, we need to show the simlock.");
                         simLockTile.setText(context.getResources().getString(R.string.illegal_sim_card_title));
                         simLockMsg.setText(context.getResources().getString(R.string.illegal_or_no_sim_card_msg));
+                    }
+                    break;
+                case ICC_IDENTIFY:
+                    synchronized (this) {
+                        if (DEBUG) Log.d(TAG, "update, sim card is identifing...");
+                        simLockTile.setText(context.getResources().getString(R.string.identify_sim_card_title));
+                        simLockMsg.setText(context.getResources().getString(R.string.identify_sim_card_msg));
+                    }
+                    break;
+                case ICC_EXPIRED:
+                    synchronized (this) {
+                        if (DEBUG) Log.d(TAG, "update, sim card is expired.");
+                        simLockTile.setText(context.getResources().getString(R.string.sim_card_expired_title));
+                        simLockMsg.setText(context.getResources().getString(R.string.sim_card_expired_msg));
                     }
                     break;
                 case ICC_PERM_DISABLED:

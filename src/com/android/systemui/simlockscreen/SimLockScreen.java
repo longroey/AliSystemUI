@@ -44,16 +44,15 @@ import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.Settings;
+import android.text.TextUtils;
 
 import android.telephony.PhoneStateListener;
-import android.telephony.TelephonyManager;
+import android.telephony.ServiceState;
 
 import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.telephony.IccCardConstants.CardType;
 import com.android.internal.telephony.IccCardConstants.State;
-import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
-import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.TelephonyProperties;
 
@@ -80,6 +79,18 @@ public class SimLockScreen extends SystemUI {
     private SubscriptionManager mSubscriptionManager;
     private Warnings mWarnings;
 
+    private String mccMnc = "UNKNOWN";
+    private final List<String> LEGAL_MCCMNC =
+        new ArrayList<String>() {
+            { add("46000");
+              add("46002");
+              add("46004");
+              add("46007");
+            }
+        };
+    //private int simServiceState = ServiceState.STATE_IN_SERVICE;
+    private int simServiceState = ServiceState.REGISTRATION_STATE_NOT_REGISTERED_AND_NOT_SEARCHING;
+
     // Telephony state
     private HashMap<Integer, IccCardConstants.State> mSimStateOfPhoneId =
             new HashMap<Integer, IccCardConstants.State>();
@@ -95,6 +106,9 @@ public class SimLockScreen extends SystemUI {
     // Device provisioning state
     private boolean mDeviceProvisioned;
     private ContentObserver mDeviceProvisionedObserver;
+    // SimLock provisioning state
+    private boolean mSimLockProvisioned;
+    private ContentObserver mSimLockProvisionedObserver;
 
     private HashMap<Integer, CharSequence> mTelephonyHnbName = new HashMap<Integer, CharSequence>();
     private HashMap<Integer, CharSequence> mTelephonyCsgId = new HashMap<Integer, CharSequence>();
@@ -112,15 +126,18 @@ public class SimLockScreen extends SystemUI {
 
     public void start() {
         mSubscriptionManager = SubscriptionManager.from(mContext);
-        savedLockedMccmnc();
         mWarnings = new SimLockScreenWarnings(mContext);
-        
+
         mDeviceProvisioned = isDeviceProvisionedInSettingsDb();
-        if (DEBUG) Log.d(TAG, "mDeviceProvisioned is:" + mDeviceProvisioned);
+        mSimLockProvisioned = isSimLockProvisionedInSettingsDb();
+        if (DEBUG) Log.d(TAG, "mDeviceProvisioned:" + mDeviceProvisioned + " mSimLockProvisioned:" + mSimLockProvisioned);
         // Since device can't be un-provisioned, we only need to register a content observer
         // to update mDeviceProvisioned when we are...
         if (!mDeviceProvisioned) {
             watchForDeviceProvisioning();
+        }
+        if (!mSimLockProvisioned) {
+            watchForSimLockProvisioning();
         }
 
         if (DEBUG) {
@@ -143,15 +160,16 @@ public class SimLockScreen extends SystemUI {
         // Watch for interesting updates
         final IntentFilter filter = new IntentFilter();
         filter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
-        filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
         filter.addAction(TelephonyIntents.SPN_STRINGS_UPDATED_ACTION);
-        filter.addAction(AudioManager.RINGER_MODE_CHANGED_ACTION);
         /// M: SIM lock unlock request after dismiss
         filter.addAction(TelephonyIntents.ACTION_UNLOCK_SIM_LOCK);
-        /// M: [ALPS01761127] Added for power-off modem feature + airplane mode
-        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED);
         /// M: added for CDMA card type is locked.
         filter.addAction(TelephonyIntents.ACTION_CDMA_CARD_TYPE);
+        filter.addAction(AudioManager.RINGER_MODE_CHANGED_ACTION);
+        filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
+        /// M: [ALPS01761127] Added for power-off modem feature + airplane mode
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
         mContext.registerReceiver(mBroadcastReceiver, filter);
 
         final IntentFilter bootCompleteFilter = new IntentFilter();
@@ -163,91 +181,14 @@ public class SimLockScreen extends SystemUI {
 
     }
 
-    private final String PWD = "4600247";
-    private final int ADDLOCK_ICC_SML = 100;
-    private final int ADDLOCK_ICC_SML_COMPLETE = 101;
-    private final int UNLOCK_ICC_SML_COMPLETE = 102;
-    private Phone mPhone;
-    private int mAddedLockCount = 0;
-    private int mFailCount = 0;
-
-    private void savedLockedMccmnc() {
-        if (!SystemProperties.getBoolean("simlock.hava_saved", false)) {
-            if (DEBUG) Log.d(TAG, "savedLockedMccmnc getNumOfPhone:" + SimLockUtils.getNumOfPhone());
-            for (int phoneId = 0; phoneId < SimLockUtils.getNumOfPhone(); phoneId++) {
-                mPhone = PhoneFactory.getPhone(phoneId);
-                if (mPhone != null) break;
-            }
-            if (mPhone == null) mPhone = PhoneFactory.getDefaultPhone();
-            if (DEBUG) Log.d(TAG, "savedLockedMccmnc mPhone:" + mPhone);
-            mLockedMccmncH.sendEmptyMessage(ADDLOCK_ICC_SML);
-        }
-    }
-
-    private Handler mLockedMccmncH = new Handler() {
-        public void handleMessage(Message msg) {
-            AsyncResult ar = (AsyncResult) msg.obj;
-            switch (msg.what) {
-            case ADDLOCK_ICC_SML:
-            case UNLOCK_ICC_SML_COMPLETE:
-                setNetworkLock(mPhone, mAddedLockCount);
-                break;
-            case ADDLOCK_ICC_SML_COMPLETE:
-                if (ar.exception != null) {
-                    if (mFailCount++ < 5) {
-                        Log.e(TAG, "add sim lock cause error, retry count:" + mFailCount);
-                        sendEmptyMessage(ADDLOCK_ICC_SML);
-                    }
-                } else {
-                    if (mAddedLockCount++ < 4) {
-                        setNetworkUnlock(mPhone);
-                    } else {
-                        SystemProperties.set("simlock.hava_saved", "true");
-                    }
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    };
-
-    private void setNetworkLock(Phone phone, int addedLockCount) {
-        Log.e(TAG, "setNetworkLock, lock count:" + addedLockCount);
-        String mccmnc = "46000";
-        switch (addedLockCount) {
-        default:
-        case 0:
-            mccmnc = "46000";
-            break;
-        case 1:
-            mccmnc = "46002";
-            break;
-        case 2:
-            mccmnc = "46004";
-            break;
-        case 3:
-            mccmnc = "46007";
-            break;
-        }
-        Message addLockCallback = Message.obtain(mLockedMccmncH, ADDLOCK_ICC_SML_COMPLETE);
-        if (phone != null) {
-            phone.getIccCard().setIccNetworkLockEnabled(0, 2, PWD,
-                    mccmnc, null, null, addLockCallback);
-        }
-    }
-
-    private void setNetworkUnlock(Phone phone) {
-        Message unlockCallback = Message.obtain(mLockedMccmncH, UNLOCK_ICC_SML_COMPLETE);
-        if (phone != null) {
-            phone.getIccCard().setIccNetworkLockEnabled(0, 0, PWD,
-                    null, null, null, unlockCallback);
-        }
-    }
-
     private boolean isDeviceProvisionedInSettingsDb() {
         return Settings.Global.getInt(mContext.getContentResolver(),
                 Settings.Global.DEVICE_PROVISIONED, 0) != 0;
+    }
+
+    private boolean isSimLockProvisionedInSettingsDb() {
+        return Settings.Global.getInt(mContext.getContentResolver(),
+                "simlock_provisioned", 0) != 0;
     }
 
     private void watchForDeviceProvisioning() {
@@ -275,7 +216,33 @@ public class SimLockScreen extends SystemUI {
             }
         }
     }
-    
+
+    private void watchForSimLockProvisioning() {
+        mSimLockProvisionedObserver = new ContentObserver(mHandler) {
+            @Override
+            public void onChange(boolean selfChange) {
+                super.onChange(selfChange);
+                mSimLockProvisioned = isSimLockProvisionedInSettingsDb();
+                if (mSimLockProvisioned) {
+                    mHandler.sendEmptyMessage(MSG_SIMLOCK_PROVISIONED);
+                }
+                if (DEBUG) Log.d(TAG, "SIMLOCK_PROVISIONED state = " + mSimLockProvisioned);
+            }
+        };
+        mContext.getContentResolver().registerContentObserver(
+                Settings.Global.getUriFor("simlock_provisioned"),
+                false, mSimLockProvisionedObserver);
+        // prevent a race condition between where we check the flag and where we register the
+        // observer by grabbing the value once again...
+        boolean provisioned = isSimLockProvisionedInSettingsDb();
+        if (provisioned != mSimLockProvisioned) {
+            mSimLockProvisioned = provisioned;
+            if (mSimLockProvisioned) {
+                mHandler.sendEmptyMessage(MSG_SIMLOCK_PROVISIONED);
+            }
+        }
+    }
+
     private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
 
         public void onReceive(Context context, Intent intent) {
@@ -317,7 +284,25 @@ public class SimLockScreen extends SystemUI {
                     Log.d(TAG, "ACTION_UNLOCK_SIM_LOCK, set sim state as UNKNOWN");
                     mSimStateOfPhoneId.put(simArgs.phoneId, IccCardConstants.State.UNKNOWN);
                 }
-                proceedToHandleSimStateChanged(simArgs) ;
+
+                proceedToHandleSimStateChanged(simArgs);
+            } else if (TelephonyIntents.ACTION_SERVICE_STATE_CHANGED.equals(action)) {
+                ServiceState ss = ServiceState.newFromBundle(intent.getExtras());
+                /*simServiceState = ss.getVoiceRegState();
+                if (simServiceState != ServiceState.STATE_IN_SERVICE) {
+                    simServiceState = ss.getDataRegState();
+                }
+                Log.i(TAG, "ServiceState:" + ss + "\n getVoiceRegState:"+ ss.getVoiceRegState()
+                        + " getDataRegState:" + ss.getDataRegState() + " simServiceState:" + simServiceState);*/
+
+                simServiceState = ss.getRilVoiceRegState();
+                if (simServiceState != ServiceState.REGISTRATION_STATE_HOME_NETWORK
+                        && simServiceState != ServiceState.REGISTRATION_STATE_ROAMING) {
+                    simServiceState = ss.getRilDataRegState();
+                }
+                Log.i(TAG, "ServiceState:" + ss + "\n getRilVoiceRegState:"+ ss.getRilVoiceRegState()
+                        + " getRilDataRegState:" + ss.getRilDataRegState() + " simServiceState:" + simServiceState);
+                refreshSimLock();
             } else if (AudioManager.RINGER_MODE_CHANGED_ACTION.equals(action)) {
                 mHandler.sendMessage(mHandler.obtainMessage(MSG_RINGER_MODE_CHANGED,
                         intent.getIntExtra(AudioManager.EXTRA_RINGER_MODE, -1), 0));
@@ -395,7 +380,7 @@ public class SimLockScreen extends SystemUI {
         final String hnbName = intent.getStringExtra(TelephonyIntents.EXTRA_HNB_NAME);
         return hnbName;
     }
-    
+
 
     private static final int MSG_CARRIER_INFO_UPDATE = 303;
     private static final int MSG_SIM_STATE_CHANGE = 304;
@@ -405,6 +390,7 @@ public class SimLockScreen extends SystemUI {
     private static final int MSG_KEYGUARD_BOUNCER_CHANGED = 322;
     private static final int MSG_BOOT_COMPLETED = 313;
     private static final int MSG_DEVICE_PROVISIONED = 308;
+    private static final int MSG_SIMLOCK_PROVISIONED = 309;
     private static final int MSG_SCREEN_TURNED_OFF = 320;
     private static final int MSG_SCREEN_TURNED_ON = 319;
     private static final int MSG_SIM_SUBSCRIPTION_INFO_CHANGED = 326;
@@ -439,6 +425,9 @@ public class SimLockScreen extends SystemUI {
                 case MSG_DEVICE_PROVISIONED:
                     handleDeviceProvisioned();
                     break;
+                case MSG_SIMLOCK_PROVISIONED:
+                    handleSimLockProvisioned();
+                    break;
                 case MSG_SCREEN_TURNED_OFF:
                     handleScreenTurnedOff(msg.arg1);
                     break;
@@ -460,7 +449,7 @@ public class SimLockScreen extends SystemUI {
             }
         }
     };
-    
+
     /**
      * Handle {@link #MSG_CARRIER_INFO_UPDATE}
      */
@@ -469,8 +458,18 @@ public class SimLockScreen extends SystemUI {
             Log.d(TAG, "handleCarrierInfoUpdate: plmn = " + mTelephonyPlmn.get(phoneId)
                        + ", spn = " + mTelephonySpn.get(phoneId) + ", phoneId = " + phoneId);
         }
-        // Refresh carrier info, you can do something here.
-        //onRefreshCarrierInfo();
+        // Refresh carrier info, we can do something here.
+        onRefreshCarrierInfo();
+    }
+
+    private void onRefreshCarrierInfo() {
+        final TelephonyManager tele = TelephonyManager.from(mContext);
+        mccMnc = tele.getSimOperator();
+        if (TextUtils.isEmpty(mccMnc)) {
+            mccMnc = "UNKNOWN";
+        }
+        Log.d(TAG, "onRefreshCarrierInfo sim mccmnc: " + mccMnc);
+        refreshSimLock();
     }
 
     /**
@@ -491,6 +490,7 @@ public class SimLockScreen extends SystemUI {
         if (state != IccCardConstants.State.UNKNOWN &&
             (state == IccCardConstants.State.ABSENT ||
              state == IccCardConstants.State.NETWORK_LOCKED ||
+             state == IccCardConstants.State.READY ||
              state != mSimStateOfPhoneId.get(simArgs.phoneId))) {
 
             mSimStateOfPhoneId.put(simArgs.phoneId, state);
@@ -568,6 +568,22 @@ public class SimLockScreen extends SystemUI {
             mContext.getContentResolver().unregisterContentObserver(mDeviceProvisionedObserver);
             mDeviceProvisionedObserver = null;
         }
+        refreshSimLock();
+    }
+
+    /**
+     * Handle {@link #MSG_SIMLOCK_PROVISIONED}
+     */
+    protected void handleSimLockProvisioned() {
+        if (mSimLockProvisionedObserver != null) {
+            // We don't need the observer anymore...
+            mContext.getContentResolver().unregisterContentObserver(mSimLockProvisionedObserver);
+            mSimLockProvisionedObserver = null;
+        }
+        refreshSimLock();
+    }
+
+    protected synchronized void refreshSimLock() {
         for (int phoneId = 0; phoneId < SimLockUtils.getNumOfPhone(); phoneId++) {
             IccCardConstants.State oriState = mSimStateOfPhoneId.get(phoneId);
             int meCategory = 0 ;
@@ -577,7 +593,7 @@ public class SimLockScreen extends SystemUI {
             SimArgs simArgs = new SimArgs(oriState, phoneId,
                                     SimLockUtils.getSubIdUsingPhoneId(phoneId), meCategory);
             if (DEBUG) {
-                Log.v(TAG, "SimArgs state=" + simArgs.simState
+                Log.v(TAG, "refreshSimLock SimArgs state=" + simArgs.simState
                     + ", phoneId=" + simArgs.phoneId + ", subId=" + simArgs.subId
                     + ", simArgs.simMECategory = " + simArgs.simMECategory);
             }
@@ -630,7 +646,7 @@ public class SimLockScreen extends SystemUI {
             onSimStateChangedUsingPhoneId(phoneId, mSimStateOfPhoneId.get(phoneId));
         }
 
-        //onRefreshCarrierInfo();
+        onRefreshCarrierInfo();
 
         Log.d(TAG, "handleSimSubscriptionInfoChanged() - end.");
     }
@@ -756,8 +772,24 @@ public class SimLockScreen extends SystemUI {
                 break;
             case READY:
                 synchronized (this) {
-                    if (DEBUG_SIM_STATES) Log.d(TAG, "READY, to disabled simlock.");
-                    mWarnings.requestShowDialog(simState.ordinal());
+                    if (DEBUG_SIM_STATES) Log.d(TAG, "READY, analyze sim card. mccMnc:" + mccMnc);
+                    if (mccMnc.equals("UNKNOWN")) {
+                        if (DEBUG_SIM_STATES) Log.d(TAG, "READY, sim mccmnc is still not available");
+                            mWarnings.requestShowDialog(SimLockScreenWarnings.ICC_IDENTIFY);
+                    } else if (LEGAL_MCCMNC.contains(mccMnc)) {
+                        if (simServiceState == ServiceState.REGISTRATION_STATE_NOT_REGISTERED_AND_SEARCHING) {
+                            if (DEBUG_SIM_STATES) Log.d(TAG, "READY, sim not registered and searching");
+                            mWarnings.requestShowDialog(SimLockScreenWarnings.ICC_IDENTIFY);
+                        } else if ((simServiceState != ServiceState.REGISTRATION_STATE_HOME_NETWORK
+                                && simServiceState != ServiceState.REGISTRATION_STATE_ROAMING)) {
+                            if (DEBUG_SIM_STATES) Log.d(TAG, "READY, sim cannot registered. simServiceState:" + simServiceState);
+                            mWarnings.requestShowDialog(SimLockScreenWarnings.ICC_EXPIRED);
+                        } else {
+                            mWarnings.requestShowDialog(simState.ordinal());
+                        }
+                    } else {
+                        mWarnings.requestShowDialog(SimLockScreenWarnings.ICC_ILLEGAL);
+                    }
                 }
                 break;
             case NOT_READY:
@@ -773,6 +805,42 @@ public class SimLockScreen extends SystemUI {
                 break;
         }
 
+    }
+
+    public boolean isExpiredSIM (int slotId) {
+        ServiceState ss = null;
+        boolean hasService = false;
+        try {
+            ITelephonyEx phoneEx = ITelephonyEx.Stub.asInterface(ServiceManager.checkService("phoneEx"));
+            if (phoneEx != null) {
+                final int [] subIds = SubscriptionManager.getSubId(slotId);
+                Log.i(TAG, "isExpiredSIM, slotId = " + slotId + ",subIds = " + subIds);
+                if (subIds != null && subIds.length != 0) {
+                    int subId = subIds[0];
+                    Bundle bd = phoneEx.getServiceState(subId);
+                    ss = ServiceState.newFromBundle(bd);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getServiceState got exception: " + e.getMessage());
+        }
+        if (ss != null) {
+            Log.i(TAG, "ServiceState:" + ss + " getVoiceRegState:" + ss.getVoiceRegState());
+            switch (ss.getVoiceRegState()) {
+                case ServiceState.STATE_IN_SERVICE:
+                    hasService = true;
+                    break;
+                case ServiceState.STATE_POWER_OFF:
+                case ServiceState.STATE_OUT_OF_SERVICE:
+                case ServiceState.STATE_EMERGENCY_ONLY:
+                default:
+                    Log.i(TAG, "ServiceState:" + ss + " getDataRegState:" + ss.getDataRegState());
+                    hasService = (ss.getDataRegState() == ServiceState.STATE_IN_SERVICE);
+                    break;
+            }
+        }
+        Log.i(TAG, "isExpiredSIM[" + slotId + "] hasService:" + hasService);
+        return hasService ? false : true;
     }
 
     /**
@@ -1029,7 +1097,7 @@ public class SimLockScreen extends SystemUI {
      */
     public void setPinPukMeDismissFlagOfPhoneId(int phoneId, boolean dismiss) {
         Log.d(TAG, "setPinPukMeDismissFlagOfPhoneId() - phoneId = " + phoneId) ;
-        
+
         if (!SimLockUtils.isValidPhoneId(phoneId)) {
             return;
         }
@@ -1136,8 +1204,7 @@ public class SimLockScreen extends SystemUI {
                 } else {
                     state = IccCardConstants.State.UNKNOWN;
                 }
-            }
-            else if (IccCardConstants.INTENT_VALUE_LOCKED_NETWORK.equals(stateExtra)) {
+            } else if (IccCardConstants.INTENT_VALUE_LOCKED_NETWORK.equals(stateExtra)) {
                 state = IccCardConstants.State.NETWORK_LOCKED;
 
             } else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra) ||
@@ -1145,11 +1212,9 @@ public class SimLockScreen extends SystemUI {
                 // This is required because telephony doesn't return to "READY" after
                 // these state transitions. See bug 7197471.
                 state = IccCardConstants.State.READY;
-            }
-            else if (IccCardConstants.INTENT_VALUE_ICC_NOT_READY.equals(stateExtra)) {
+            } else if (IccCardConstants.INTENT_VALUE_ICC_NOT_READY.equals(stateExtra)) {
                 state = IccCardConstants.State.NOT_READY;
-            }
-            else {
+            } else {
                 state = IccCardConstants.State.UNKNOWN;
             }
 

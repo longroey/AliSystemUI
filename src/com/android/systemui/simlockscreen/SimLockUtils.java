@@ -12,16 +12,9 @@ import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
-
 public class SimLockUtils {
     private static final String TAG = "SimLockUtils";
     private static final boolean DEBUG = true;
-
-    private SubscriptionManager mSubscriptionManager;
-
-    public SimLockUtils(Context context) {
-        mSubscriptionManager = SubscriptionManager.from(context);
-    }
 
     /**
      * Return Operator name of related subId.
@@ -29,9 +22,10 @@ public class SimLockUtils {
      * @param context the context
      * @return operator name.
      */
-    public String getOptrNameUsingPhoneId(int phoneId, Context context) {
+    public static String getOptrNameUsingPhoneId(int phoneId, Context context) {
         int subId = getSubIdUsingPhoneId(phoneId) ;
-        SubscriptionInfo info = mSubscriptionManager.getActiveSubscriptionInfo(subId);
+        SubscriptionManager subscriptionManager = SubscriptionManager.from(context);
+        SubscriptionInfo info = subscriptionManager.getActiveSubscriptionInfo(subId);
         if (null == info) {
            if (DEBUG) {
             Log.d(TAG, "getOptrNameUsingPhoneId, return null");
@@ -53,10 +47,11 @@ public class SimLockUtils {
      * @param context the context
      * @return operator related drawable.
      */
-    public Bitmap getOptrBitmapUsingPhoneId(int phoneId, Context context) {
+    public static Bitmap getOptrBitmapUsingPhoneId(int phoneId, Context context) {
         int subId = getSubIdUsingPhoneId(phoneId) ;
         Bitmap bgBitmap = null;
-        SubscriptionInfo info = mSubscriptionManager.getActiveSubscriptionInfo(subId);
+        SubscriptionManager subscriptionManager = SubscriptionManager.from(context);
+        SubscriptionInfo info = subscriptionManager.getActiveSubscriptionInfo(subId);
         if (null == info) {
             if (DEBUG) {
                 Log.d(TAG, "getOptrBitmapUsingPhoneId, return null");
@@ -66,9 +61,6 @@ public class SimLockUtils {
         }
         return bgBitmap;
     }
-
-
-
 
     /**
      * Return AirPlane mode is on or not.

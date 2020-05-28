@@ -362,18 +362,31 @@
     <string name="quick_settings_reset_confirmation_title" msgid="748792586749897883">"要隐藏“<xliff:g id="TILE_LABEL">%1$s</xliff:g>”吗？"</string>
     <string name="quick_settings_reset_confirmation_message" msgid="2235970126803317374">"下次在设置中将其开启后，此快捷设置条目将会重新显示。"</string>
     <string name="quick_settings_reset_confirmation_button" msgid="2660339101868367515">"隐藏"</string>
-    
-    	<!-- Show Dialog after usb plug out-->
+
+    <!-- Show Dialog after usb plug out-->
     <string name="show_dialog_message_suspend">设备将会在 %1$d 秒后休眠</string>
     <string name="show_dialog_message_shutdown">设备将会在 %1$d 秒后关机</string>
     <string name="show_dialog_title_acc">车辆已熄火</string>
     <string name="show_dialog_title">外部供电已断开</string>
-    
+
     <!-- recents app -->
     <string name="recent_task">已开启任务数：</string>
     <string name="recent_task_current_mem_label">占用内存</string>
     <string name="recent_task_delete_app_text">向上拖拽图标结束任务</string>
     <string name="recent_task_release_memory">释放 %1$dM 内存</string>
-		<string name="recent_task_no_more_released">无可释放内存</string>
-		<string name="notification_process_protected">当前系统进程正在保护中!</string>
+    <string name="recent_task_no_more_released">无可释放内存</string>
+    <string name="notification_process_protected">当前系统进程正在保护中!</string>
+
+    <string name="simlock_carrier_default">无服务</string>
+    <string name="no_sim_card_title">无SIM卡</string>
+    <string name="illegal_sim_card_title">非法的SIM卡</string>
+    <string name="illegal_or_no_sim_card_msg">请插入中国移动SIM卡!</string>
+    <string name="identify_sim_card_title">请稍后</string>
+    <string name="identify_sim_card_msg">SIM卡识别中\u2026</string>
+    <string name="sim_card_expired_title">SIM卡无法注册</string>
+    <string name="sim_card_expired_msg">无信号或者SIM卡已过期!</string>
+    <string name="sim_card_perm_disabled_title">SIM卡不可用</string>
+    <string name="sim_card_perm_disabled_msg">请更换一张新中国移动SIM卡!</string>
+    <string name="sim_card_io_error_title">SIM卡读写错误</string>
+    <string name="sim_card_io_error_msg">请重新插拔SIM卡或重启设备，尝试修复!</string>
 </resources>

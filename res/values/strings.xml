@@ -929,4 +929,17 @@
 <string name="notification_process_protected">This system process is protected!</string>
 
     <string name="acc_state_on_statusbar">ACC</string>
+
+    <string name="simlock_carrier_default">No service</string>
+    <string name="no_sim_card_title">No SIM card</string>
+    <string name="illegal_sim_card_title">Illegal SIM card</string>
+    <string name="illegal_or_no_sim_card_msg">Please insert China mobile SIM card!</string>
+    <string name="identify_sim_card_title">please wait</string>
+    <string name="identify_sim_card_msg">SIM card identification...</string>
+    <string name="sim_card_expired_title">SIM card cannot be registered</string>
+    <string name="sim_card_expired_msg">No signal or SIM card expired.</string>
+    <string name="sim_card_perm_disabled_title">SIM card permanently disabled</string>
+    <string name="sim_card_perm_disabled_msg">Please change a new China mobile SIM card.</string>
+    <string name="sim_card_io_error_title">SIM card i/o error</string>
+    <string name="sim_card_io_error_msg">Please try the repair by replugging the SIM card or rebooting the device.</string>
 </resources>

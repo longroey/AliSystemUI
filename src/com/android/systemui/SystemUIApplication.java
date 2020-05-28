@@ -40,6 +40,7 @@ public class SystemUIApplication extends Application {
      * The classes of the stuff to start.
      */
     private final Class<?>[] SERVICES = new Class[] {
+            com.android.systemui.simlock.SimLockScreen.class,
             com.android.systemui.keyguard.KeyguardViewMediator.class,
             com.android.systemui.recent.Recents.class,
             com.android.systemui.volume.VolumeUI.class,
