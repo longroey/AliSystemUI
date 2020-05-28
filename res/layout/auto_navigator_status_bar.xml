@@ -1,0 +1,45 @@
+<com.android.systemui.statusbar.auto.NavigatorStatusBarView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:systemui="http://schemas.android.com/apk/res/com.android.systemui"
+    android:id="@+id/auto_navigator_status_bar"
+    android:layout_width="70dp"
+    android:layout_height="match_parent"
+    android:layout_marginTop="100dp"
+    android:focusable="true"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/clock_hold"
+        android:layout_width="70dp"
+        android:layout_height="100dp"
+        android:visibility="invisible" />
+
+    <RelativeLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/system_bar_background"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/seg_remain_distance"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="2dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/distance_default"
+            android:singleLine="true"
+            android:textColor="#FFFFFFFF"
+            android:textSize="24sp" />
+
+        <ImageView
+            android:id="@+id/hud_icon"
+            android:layout_above="@id/seg_remain_distance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:scaleType="fitEnd" />
+    </RelativeLayout>
+
+</com.android.systemui.statusbar.auto.NavigatorStatusBarView>

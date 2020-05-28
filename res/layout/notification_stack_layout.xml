@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.android.systemui.statusbar.auto.compositecard.NotificationStackFrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_marginStart="@dimen/ali_status_bar_width"
+    android:layout_width="@dimen/ali_big_card_width"
+    android:layout_height="@*android:dimen/ali_status_bar_height"
+    android:id="@+id/big_card_content"
+    android:background="@android:color/darker_gray" >
+    <ImageView android:layout_width="wrap_content" android:id="@+id/background_animator"
+        android:layout_height="wrap_content" android:src="@drawable/road_running_bg"/>
+    <include layout="@layout/content_roadinfo_layout" />
+
+    <include layout="@layout/content_navigator_layout" />
+
+    <include layout="@layout/content_adas_layout" />
+
+    <com.android.systemui.statusbar.auto.compositecard.SpeedLimitFloatView
+        android:id="@+id/speed_limit_float_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+	android:visibility="invisible"
+        android:layout_marginLeft="20dp" >
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" >
+
+            <TextView
+                android:id="@+id/speed_limit_text"
+                android:layout_width="62dp"
+                android:layout_height="62dp"
+                android:visibility="invisible"
+                android:background="@drawable/home_drive_speedlimit"
+                android:gravity="center"
+                android:textColor="#FFD0D0D0"
+                android:textSize="36sp" />
+
+            <ImageView
+                android:id="@+id/camera_limit_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/home_drive_camera" />
+
+
+        </LinearLayout>
+
+    </com.android.systemui.statusbar.auto.compositecard.SpeedLimitFloatView>
+
+    <include layout="@layout/content_account_layout" />
+
+</com.android.systemui.statusbar.auto.compositecard.NotificationStackFrameLayout>

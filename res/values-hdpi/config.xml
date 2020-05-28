@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<!-- The number of columns in the QuickSettings -->
+    <integer name="quick_settings_num_columns">2</integer>
+
+    <!-- The maximum number of rows in the QuickSettings -->
+    <integer name="quick_settings_max_rows">3</integer>
+    
+    <!-- modify for auto quick setting. -->
+    <string name="quick_settings_tiles_default" translatable="false">
+        hotspot,carbt,roadinfo,fmt
+    </string>
+    <bool name="config_land_qs_label">true</bool>
+</resources>

@@ -1,0 +1,53 @@
+<com.android.systemui.statusbar.auto.TalkingStatusBarView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:systemui="http://schemas.android.com/apk/res/com.android.systemui"
+    android:id="@+id/auto_talking_status_bar"
+    android:layout_width="70dp"
+    android:layout_height="match_parent"
+    android:background="@drawable/system_bar_background"
+    android:focusable="true"
+    android:orientation="vertical" >
+
+    <ImageView
+        android:id="@+id/breath_view"
+        android:layout_width="70dp"
+        android:layout_height="match_parent"
+        android:background="#3BA78C" />
+
+    <LinearLayout
+        android:id="@+id/content"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical" >
+
+        <com.android.systemui.statusbar.auto.AutoTimerView
+            android:id="@+id/auto_timer"
+            android:layout_gravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" >
+
+            <ImageView
+                android:id="@+id/light"
+                android:layout_width="18dip"
+                android:layout_height="18dip"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/timer"
+                android:textColor="#FFFFFFFF"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:textSize="20sp" />
+
+        </com.android.systemui.statusbar.auto.AutoTimerView>
+
+        <TextView
+            android:id="@+id/auto_phone_status"
+            android:textColor="#FFFFFFFF"
+            android:layout_gravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+</com.android.systemui.statusbar.auto.TalkingStatusBarView>

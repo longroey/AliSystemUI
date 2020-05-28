@@ -1,0 +1,6 @@
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/drivemode_road_running_bg_01" android:duration="200" />
+    <item android:drawable="@drawable/drivemode_road_running_bg_02" android:duration="200" />
+    <item android:drawable="@drawable/drivemode_road_running_bg_03" android:duration="200" />
+    <item android:drawable="@drawable/drivemode_road_running_bg_04" android:duration="200" />
+</animation-list>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="account_default">Ironkeel, good evening.</string>
+    <string name="home_distance_default">0.0</string>
+    <string name="home_distance_unit">km</string>
+    <string name="home_string">home</string>
+    <string name="company_distance_default">00</string>
+    <string name="company_distance_unit">km</string>
+    <string name="company_string">compa</string>
+    <string name="speed">--</string>
+    <string name="speed_unit">km/h</string>
+    <string name="distance_default">0.0km</string>
+    <string name="remain_time">54min</string>
+    <string name="road_default">文一西路</string>
+    <string name="icon_prefix">sou%1$d</string>
+    <string name="qs_label_roadinfo">road info</string>
+    <string name="qs_label_fmt">fmt</string>
+    <string name="qs_label_adas">ADAS</string>
+    <string name="qs_label_driving_mode">driving mode</string>
+    <string name="qs_label_mobile_data">mobile data</string>
+    <string name="qs_label_hot_spot">hot spot</string>
+    <string name="qs_label_mute_volume">mute volume</string>
+    <string name="qs_label_volume">volume</string>
+    <string name="qs_label_auto_light">auto light</string>
+    <string name="qs_label_light">light</string>
+    <string name="qs_label_car_bluetooth">car bluetooth</string>
+    <string-array name="account_welcome_info">
+        <item>hello</item>
+        <item>good morning</item>
+        <item>good afternoon</item>
+        <item>good evening</item>
+    </string-array>
+    <string name="setting_default_title">setting_default_title</string>
+    <string name="setting_login">login</string>
+    <string name="setting_logout">logout</string>
+    <string name="state_comming_call">comming call</string>
+    <string name="state_going_call">going call</string>
+    <string name="state_connected">connected</string>
+    <string name="state_idle">idle</string>
+    <string name="kilometer">km</string>
+    <string name="meter">m</string>
+    <string name="minute">min</string>
+    <string name="hour">h</string>
+</resources>

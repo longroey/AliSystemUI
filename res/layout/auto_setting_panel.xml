@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/* apps/common/assets/default/default/skins/StatusBar.xml
+**
+** Copyright 2006, The Android Open Source Project
+**
+** Licensed under the Apache License, Version 2.0 (the "License"); 
+** you may not use this file except in compliance with the License. 
+** You may obtain a copy of the License at 
+**
+**     http://www.apache.org/licenses/LICENSE-2.0 
+**
+** Unless required by applicable law or agreed to in writing, software 
+** distributed under the License is distributed on an "AS IS" BASIS, 
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+** See the License for the specific language governing permissions and 
+** limitations under the License.
+*/
+-->
+
+
+<!-- android:background="@drawable/status_bar_closed_default_background" -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:systemui="http://schemas.android.com/apk/res/com.android.systemui"
+    android:id="@+id/auto_setting_panel"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:descendantFocusability="afterDescendants"
+    android:focusable="true" >
+
+<!--     <GridLayout
+        android:id="@+id/grid_panel"
+        android:layout_width="528dp"
+        android:layout_height="match_parent" 
+        android:layout_alignParentStart="true">
+    </GridLayout> -->
+<include layout="@layout/qs_panel"
+        android:layout_width="@dimen/qs_panel_width"
+        android:layout_height="match_parent" 
+        android:layout_alignParentStart="true"/>
+<include layout="@layout/slider_panel" 
+    android:id="@+id/slider_panel"
+    android:layout_toStartOf="@+id/holder_panel"
+    />
+    <FrameLayout
+        android:id="@id/holder_panel"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentEnd="true" >
+		<ImageView
+            android:id="@+id/holder_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:clickable="false"
+            android:src="@drawable/control_bar" />
+        <ImageView
+            android:id="@+id/screen_off_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" 
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/control_off_screen"
+            android:clickable="true"/>
+        <ImageView
+            android:id="@+id/setting_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/control_setting"
+            android:layout_gravity="bottom|center_horizontal"
+            android:clickable="true" />
+    </FrameLayout>
+    <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginRight="30dp"
+            android:layout_marginTop="51dp"
+            android:visibility="gone"
+            android:layout_toStartOf="@id/slider_panel"
+            android:src="@drawable/control_line" />
+</RelativeLayout>
